@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retro SFX Forge // sfx-forge.slippylabs.com</title>
+<meta name="description" content="A retro sound effect synth in the browser — pickups, lasers, explosions, jumps and blips from a seeded generator or a full parameter rack, with WAV export. Runs entirely in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sfx-forge.slippylabs.com/">
+<meta property="og:title" content="Retro SFX Forge // sfx-forge.slippylabs.com">
+<meta property="og:description" content="A retro sound effect synth in the browser — pickups, lasers, explosions, jumps and blips from a seeded generator or a full parameter rack, with WAV export. Runs entirely in your browser.">
+<meta property="og:image" content="https://sfx-forge.slippylabs.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Retro SFX Forge // sfx-forge.slippylabs.com">
+<meta name="twitter:description" content="A retro sound effect synth in the browser — pickups, lasers, explosions, jumps and blips from a seeded generator or a full parameter rack, with WAV export. Runs entirely in your browser.">
+<meta name="twitter:image" content="https://sfx-forge.slippylabs.com/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2234%22%20r%3D%2222%22%20fill%3D%22%231c8a52%22%20stroke%3D%22%2339ff8f%22%20stroke-width%3D%222%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2216%22%20r%3D%228%22%20fill%3D%22%231c8a52%22%20stroke%3D%22%2339ff8f%22%20stroke-width%3D%222%22%2F%3E%3Ccircle%20cx%3D%2244%22%20cy%3D%2216%22%20r%3D%228%22%20fill%3D%22%231c8a52%22%20stroke%3D%22%2339ff8f%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E">
+<meta name="theme-color" content="#050b10">
+<link rel="stylesheet" href="style.css?v=1">
+<script>/* perf-lite: drop blend/blur effects on low-power devices. ?fx=lite or ?fx=full to override (persisted). */
+(function(){try{var k="slippy-fx",m=location.search.match(/[?&]fx=(lite|full)/),v=m?m[1]:localStorage.getItem(k);if(m)localStorage.setItem(k,v);if(v==="lite"||(v!=="full"&&(navigator.hardwareConcurrency||8)<=2))document.documentElement.classList.add("perf-lite");}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="starfield"></div>
+<div class="scanlines"></div>
+
+<main class="page-wrap">
+  <div class="hud-panel wide">
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <div class="callsign-row">
+      <div class="toad-avatar-wrap">
+        <svg class="toad-avatar" width="46" height="46" viewBox="0 0 64 64">
+          <circle cx="32" cy="34" r="22" fill="#1c8a52" stroke="#39ff8f" stroke-width="2"/>
+          <circle cx="20" cy="16" r="8" fill="#1c8a52" stroke="#39ff8f" stroke-width="2"/>
+          <circle cx="44" cy="16" r="8" fill="#1c8a52" stroke="#39ff8f" stroke-width="2"/>
+          <circle cx="20" cy="16" r="3.5" fill="#050b10"/>
+          <circle cx="44" cy="16" r="3.5" fill="#050b10"/>
+          <ellipse cx="24" cy="32" rx="4.5" ry="5.5" fill="#050b10"/>
+          <ellipse cx="40" cy="32" rx="4.5" ry="5.5" fill="#050b10"/>
+          <circle cx="24" cy="30" r="1.4" fill="#39ff8f"/>
+          <circle cx="40" cy="30" r="1.4" fill="#39ff8f"/>
+          <path d="M22 42 Q32 48 42 42" stroke="#050b10" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="lock-reticle"></div>
+      </div>
+      <span class="callsign">Workshop Division // Tool</span>
+      <div class="nav-links">
+        <a href="https://projects.slippylabs.com/" class="logout-link">← Archive</a>
+      </div>
+    </div>
+
+
+    <h1>RETRO SFX FORGE</h1>
+    <p class="subtitle">Every arcade sound you remember is an oscillator, an envelope and a frequency that will not sit still. Press a generator button until something makes you grin, then turn the dials until it is yours.</p>
+
+    <div class="tool-controls sf-generators">
+      <button class="tool-btn" data-gen="pickup">Pickup</button>
+      <button class="tool-btn" data-gen="laser">Laser</button>
+      <button class="tool-btn" data-gen="explosion">Explosion</button>
+      <button class="tool-btn" data-gen="powerup">Power-up</button>
+      <button class="tool-btn" data-gen="hurt">Hurt</button>
+      <button class="tool-btn" data-gen="jump">Jump</button>
+      <button class="tool-btn" data-gen="blip">Blip</button>
+      <button class="tool-btn ghost" data-gen="random">Random</button>
+    </div>
+
+    <div class="sf-layout">
+      <div>
+        <div class="sf-scope-wrap">
+          <canvas id="scope" width="640" height="180"></canvas>
+        </div>
+        <div class="tool-controls">
+          <button class="tool-btn" id="play-btn">▶ Play</button>
+          <button class="tool-btn ghost" id="mutate-btn">Mutate</button>
+          <button class="tool-btn ghost" id="wav-btn">Download WAV</button>
+          <button class="tool-btn ghost" id="share-btn">Copy share link</button>
+          <a id="download-link" hidden></a>
+        </div>
+        <div class="copy-toast" id="toast">Copied</div>
+
+        <div class="net-grid">
+          <div class="net-tile"><div class="net-tile-label">Duration</div><div class="net-tile-value" id="stat-dur">—</div></div>
+          <div class="net-tile"><div class="net-tile-label">Samples</div><div class="net-tile-value" id="stat-samples">—</div></div>
+          <div class="net-tile"><div class="net-tile-label">Peak</div><div class="net-tile-value" id="stat-peak">—</div></div>
+          <div class="net-tile"><div class="net-tile-label">WAV size</div><div class="net-tile-value" id="stat-size">—</div></div>
+        </div>
+        <p class="tool-note" id="clip-note"></p>
+
+        <div class="two-col sf-output-opts">
+          <div class="tool-field-row">
+            <label class="tool-field-label" for="rate-select">Sample rate</label>
+            <select class="tool-select" id="rate-select">
+              <option value="44100" selected>44100 Hz</option>
+              <option value="22050">22050 Hz — half the size, and more authentic</option>
+              <option value="11025">11025 Hz — properly crunchy</option>
+            </select>
+          </div>
+          <div class="tool-field-row">
+            <label class="tool-field-label" for="bits-select">Bit depth</label>
+            <select class="tool-select" id="bits-select">
+              <option value="16" selected>16-bit signed</option>
+              <option value="8">8-bit unsigned</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="sf-rack" id="rack"></div>
+    </div>
+
+    <p class="tool-note" id="seed-note"></p>
+    <div class="comm-window">
+      <div class="comm-portrait">
+        <svg width="36" height="36" viewBox="0 0 64 64">
+          <circle cx="32" cy="34" r="22" fill="#1c8a52" stroke="#39ff8f" stroke-width="2"/>
+          <circle cx="20" cy="16" r="8" fill="#1c8a52" stroke="#39ff8f" stroke-width="2"/>
+          <circle cx="44" cy="16" r="8" fill="#1c8a52" stroke="#39ff8f" stroke-width="2"/>
+          <circle cx="20" cy="16" r="3.5" fill="#050b10"/>
+          <circle cx="44" cy="16" r="3.5" fill="#050b10"/>
+          <ellipse cx="24" cy="32" rx="4.5" ry="5.5" fill="#050b10"/>
+          <ellipse cx="40" cy="32" rx="4.5" ry="5.5" fill="#050b10"/>
+          <circle cx="24" cy="30" r="1.4" fill="#39ff8f"/>
+          <circle cx="40" cy="30" r="1.4" fill="#39ff8f"/>
+          <path d="M22 42 Q32 48 42 42" stroke="#050b10" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="comm-body">
+        <div class="comm-label"><span class="dot"></span> Incoming Transmission &mdash; Slippy</div>
+        <p>&quot;Nobody ever recorded a laser. They swept a square wave and called it one.&quot;</p>
+      </div>
+    </div>
+
+    <a href="https://projects.slippylabs.com/" class="hud-btn">← Back to Archive</a>
+  </div>
+</main>
+
+
+<script>
+/* ---- A retro sound effect synth ---------------------------------------------
+   One oscillator, one envelope, and a frequency that moves. That is the whole
+   architecture of the sound chips this imitates, and almost every arcade effect
+   that has ever existed is some setting of it.
+
+   Frequency over time is deliberately a CLOSED FORM rather than an accumulated
+   per-sample nudge:
+
+       f(t) = f0 * 2^(slide*t + deltaSlide*t^2/2)
+
+   so slide is in octaves per second and reads the same at any sample rate. An
+   accumulated nudge would make the same patch sound different at 22 kHz, which
+   is exactly the bug that makes an exported effect not match the preview.
+   Only the PHASE is accumulated, because it has to be. */
+
+const MAX_DURATION = 6;
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const DEFAULTS = {
+  waveform: 'square',      /* square | saw | triangle | sine | noise */
+  seed: 1,
+  attack: 0.0,             /* seconds */
+  sustain: 0.18,
+  punch: 0.0,              /* extra gain at the start of the sustain, 0..1 */
+  decay: 0.25,
+  startFrequency: 520,     /* Hz */
+  minFrequency: 20,
+  slide: 0,                /* octaves per second */
+  deltaSlide: 0,           /* octaves per second per second */
+  duty: 0.5,               /* square only */
+  dutySweep: 0,            /* per second */
+  vibratoDepth: 0,         /* fraction of the frequency */
+  vibratoSpeed: 8,         /* Hz */
+  arpeggioMultiplier: 1,   /* frequency jumps by this... */
+  arpeggioTime: 0,         /* ...after this many seconds (0 = never) */
+  lowPass: 1,              /* 1 = wide open, as a fraction of Nyquist */
+  lowPassSweep: 0,
+  resonance: 0,
+  highPass: 0,
+  repeatSpeed: 0,          /* Hz; 0 = no repeat */
+  volume: 0.5,
+};
+
+const PARAM_ORDER = Object.keys(DEFAULTS);
+
+function totalDuration(p) {
+  return Math.min(MAX_DURATION, Math.max(0.01, p.attack + p.sustain + p.decay));
+}
+
+/* The envelope, as a function of time rather than a sample index, so it is the
+   same shape at every sample rate. */
+function envelopeAt(p, t) {
+  const a = p.attack;
+  const s = p.sustain;
+  const d = p.decay;
+  if (t < 0) return 0;
+  if (t < a) return a <= 0 ? 1 : t / a;
+  if (t < a + s) {
+    const k = s <= 0 ? 0 : (t - a) / s;
+    return 1 + p.punch * (1 - k);     /* the punch decays across the sustain */
+  }
+  if (t < a + s + d) return d <= 0 ? 0 : 1 - (t - a - s) / d;
+  return 0;
+}
+
+function frequencyAt(p, t, nyquist) {
+  const exponent = p.slide * t + (p.deltaSlide * t * t) / 2;
+  let f = p.startFrequency * Math.pow(2, exponent);
+  if (p.vibratoDepth > 0) f *= 1 + p.vibratoDepth * Math.sin(2 * Math.PI * p.vibratoSpeed * t);
+  if (p.arpeggioTime > 0 && t >= p.arpeggioTime) f *= p.arpeggioMultiplier;
+  const ceiling = nyquist * 0.95;
+  return Math.min(ceiling, Math.max(p.minFrequency, f));
+}
+
+function waveSample(waveform, phase, duty, noiseValue) {
+  switch (waveform) {
+    case 'saw': return 1 - 2 * phase;
+    case 'triangle': return 4 * Math.abs(phase - 0.5) - 1;
+    case 'sine': return Math.sin(2 * Math.PI * phase);
+    case 'noise': return noiseValue;
+    default: return phase < duty ? 1 : -1;
+  }
+}
+
+/* A two-pole resonant low-pass and a one-pole high-pass, the pair every sound
+   chip emulation ends up with. Cutoff is a fraction of Nyquist so a patch keeps
+   its character at any rate. */
+function makeFilters() {
+  return { lpPos: 0, lpVel: 0, hpPrevIn: 0, hpPrevOut: 0 };
+}
+
+function applyFilters(state, sample, cutoff, resonance, highPass) {
+  let out = sample;
+  if (cutoff < 0.999) {
+    const f = Math.max(1e-4, Math.min(0.9, cutoff));
+    const damping = Math.max(0.02, 1 - resonance * 0.98);
+    state.lpVel += (out - state.lpPos) * f;
+    state.lpVel *= damping;
+    state.lpPos += state.lpVel;
+    out = state.lpPos;
+  }
+  if (highPass > 0.0005) {
+    const a = 1 - Math.max(0, Math.min(0.9, highPass));
+    const filtered = a * (state.hpPrevOut + out - state.hpPrevIn);
+    state.hpPrevIn = out;
+    state.hpPrevOut = filtered;
+    out = filtered;
+  }
+  return out;
+}
+
+/* A couple of milliseconds of ramp at each end, on top of whatever the envelope
+   is doing. An instant attack is the point of a blip and a zero decay is the
+   point of a stab -- but a waveform that starts and stops at full scale is a
+   step, and a step is a click you hear on every single playback. Two
+   milliseconds is short enough to leave the transient intact and long enough
+   that the step becomes a slope. */
+const DECLICK_SECONDS = 0.002;
+
+function declickGain(i, count, fade) {
+  if (fade <= 0) return 1;
+  if (i < fade) return i / fade;
+  if (i >= count - fade) return (count - 1 - i) / fade;
+  return 1;
+}
+
+function renderSound(params, sampleRate = 44100) {
+  const p = { ...DEFAULTS, ...params };
+  const nyquist = sampleRate / 2;
+  const duration = totalDuration(p);
+  const count = Math.max(1, Math.floor(duration * sampleRate));
+  const out = new Float32Array(count);
+  const fade = Math.min(Math.floor(sampleRate * DECLICK_SECONDS), Math.floor(count / 8));
+
+  const rnd = mulberry32(p.seed);
+  const filters = makeFilters();
+  let phase = 0;
+  let noiseValue = rnd() * 2 - 1;
+  /* The repeat resets the phase and the filter state, not the envelope -- an
+     effect that restarted its envelope would just be a shorter effect played
+     several times, which is not what a repeat sounds like. */
+  const repeatPeriod = p.repeatSpeed > 0 ? 1 / p.repeatSpeed : Infinity;
+  let nextRepeat = repeatPeriod;
+
+  for (let i = 0; i < count; i++) {
+    const t = i / sampleRate;
+    if (t >= nextRepeat) {
+      phase = 0;
+      nextRepeat += repeatPeriod;
+      Object.assign(filters, makeFilters());
+    }
+    const local = repeatPeriod === Infinity ? t : t % repeatPeriod;
+    const freq = frequencyAt(p, local, nyquist);
+
+    const before = phase;
+    phase += freq / sampleRate;
+    if (phase >= 1) {
+      phase -= Math.floor(phase);
+      /* Sample-and-hold noise: a new random value once per cycle, which is what
+         makes noise pitched rather than white. */
+      noiseValue = rnd() * 2 - 1;
+    }
+    void before;
+
+    const duty = Math.min(0.95, Math.max(0.05, p.duty + p.dutySweep * t));
+    let sample = waveSample(p.waveform, phase, duty, noiseValue);
+
+    const cutoff = Math.max(0.001, Math.min(1, p.lowPass + p.lowPassSweep * t));
+    sample = applyFilters(filters, sample, cutoff, p.resonance, p.highPass);
+
+    sample *= envelopeAt(p, t) * p.volume * declickGain(i, count, fade);
+    /* Hard clip, once, at the end. A patch that pushes past full scale is a
+       legitimate sound; letting it wrap round would be a click. */
+    out[i] = Math.max(-1, Math.min(1, sample));
+  }
+  return out;
+}
+
+/* ---- WAV ---------------------------------------------------------------------
+   Canonical RIFF/WAVE, mono, PCM. 8-bit WAV is UNSIGNED with 128 as silence and
+   16-bit is SIGNED with 0 as silence -- the single most common way to produce a
+   file that plays as a burst of noise. */
+function encodeWav(samples, sampleRate, bitsPerSample = 16) {
+  const bytesPerSample = bitsPerSample === 8 ? 1 : 2;
+  const dataSize = samples.length * bytesPerSample;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const writeString = (offset, text) => {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);            /* PCM fmt chunk size */
+  view.setUint16(20, 1, true);             /* format 1 = PCM */
+  view.setUint16(22, 1, true);             /* mono */
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * bytesPerSample, true);   /* byte rate */
+  view.setUint16(32, bytesPerSample, true);                /* block align */
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    if (bitsPerSample === 8) {
+      view.setUint8(offset, Math.round(s * 127) + 128);
+      offset += 1;
+    } else {
+      /* Asymmetric on purpose: 32767 is the largest positive value a signed
+         16-bit sample can hold, and scaling by 32768 would wrap +1.0 to the
+         most negative sample there is. */
+      view.setInt16(offset, Math.round(s * 32767), true);
+      offset += 2;
+    }
+  }
+  return new Uint8Array(buffer);
+}
+
+/* ---- Generators --------------------------------------------------------------
+   Each one is a shape plus a seeded random spread, so the button gives you a
+   different pickup every press but always a pickup. */
+function generate(kind, seed) {
+  const rnd = mulberry32(seed);
+  const r = (lo, hi) => lo + rnd() * (hi - lo);
+  const p = { ...DEFAULTS, seed };
+  switch (kind) {
+    case 'pickup':
+      Object.assign(p, {
+        waveform: 'square', attack: 0, sustain: r(0.02, 0.07), punch: r(0.2, 0.5),
+        decay: r(0.1, 0.3), startFrequency: r(500, 900), duty: r(0.2, 0.5),
+        arpeggioMultiplier: r(1.3, 1.9), arpeggioTime: r(0.02, 0.06), volume: 0.45,
+      });
+      break;
+    case 'laser':
+      Object.assign(p, {
+        waveform: rnd() < 0.6 ? 'saw' : 'square', attack: 0, sustain: r(0.02, 0.09),
+        decay: r(0.08, 0.2), startFrequency: r(900, 1900), minFrequency: r(60, 200),
+        slide: r(-9, -4), duty: r(0.2, 0.6), dutySweep: r(-0.6, 0.6),
+        lowPass: r(0.5, 1), volume: 0.4,
+      });
+      break;
+    case 'explosion':
+      Object.assign(p, {
+        waveform: 'noise', attack: 0, sustain: r(0.08, 0.2), punch: r(0.3, 0.7),
+        decay: r(0.3, 0.7), startFrequency: r(200, 600), slide: r(-3, -0.6),
+        lowPass: r(0.15, 0.5), lowPassSweep: r(-0.4, -0.05), resonance: r(0, 0.3),
+        volume: 0.5,
+      });
+      break;
+    case 'powerup':
+      Object.assign(p, {
+        waveform: rnd() < 0.5 ? 'square' : 'triangle', attack: r(0, 0.03),
+        sustain: r(0.1, 0.25), decay: r(0.15, 0.4), startFrequency: r(250, 500),
+        slide: r(1.2, 3), vibratoDepth: r(0, 0.12), vibratoSpeed: r(6, 16),
+        duty: r(0.3, 0.6), volume: 0.42,
+      });
+      break;
+    case 'hurt':
+      Object.assign(p, {
+        waveform: rnd() < 0.5 ? 'saw' : 'noise', attack: 0, sustain: r(0.02, 0.06),
+        punch: r(0.2, 0.5), decay: r(0.1, 0.3), startFrequency: r(300, 700),
+        slide: r(-5, -1.5), lowPass: r(0.3, 0.8), volume: 0.45,
+      });
+      break;
+    case 'jump':
+      Object.assign(p, {
+        waveform: 'square', attack: 0, sustain: r(0.05, 0.12), decay: r(0.08, 0.2),
+        startFrequency: r(200, 420), slide: r(1.5, 4), duty: r(0.2, 0.5), volume: 0.4,
+      });
+      break;
+    case 'blip':
+      Object.assign(p, {
+        waveform: rnd() < 0.5 ? 'square' : 'triangle', attack: 0, sustain: r(0.01, 0.04),
+        decay: r(0.02, 0.08), startFrequency: r(400, 1200), duty: r(0.3, 0.7), volume: 0.4,
+      });
+      break;
+    default: {
+      const waves = ['square', 'saw', 'triangle', 'sine', 'noise'];
+      Object.assign(p, {
+        waveform: waves[Math.floor(rnd() * waves.length)],
+        attack: r(0, 0.1), sustain: r(0.02, 0.25), punch: r(0, 0.6), decay: r(0.05, 0.5),
+        startFrequency: r(120, 1600), minFrequency: r(20, 120), slide: r(-6, 5),
+        deltaSlide: r(-4, 4), duty: r(0.15, 0.85), dutySweep: r(-0.8, 0.8),
+        vibratoDepth: rnd() < 0.5 ? 0 : r(0, 0.2), vibratoSpeed: r(3, 20),
+        arpeggioMultiplier: rnd() < 0.6 ? 1 : r(0.5, 2), arpeggioTime: r(0.01, 0.1),
+        lowPass: r(0.15, 1), lowPassSweep: r(-0.5, 0.5), resonance: r(0, 0.5),
+        highPass: rnd() < 0.7 ? 0 : r(0, 0.3), repeatSpeed: rnd() < 0.7 ? 0 : r(2, 18),
+        volume: r(0.35, 0.55),
+      });
+    }
+  }
+  return p;
+}
+
+/* Nudge every numeric dial a little, keeping the character. */
+function mutate(params, seed, amount = 0.12) {
+  const rnd = mulberry32(seed);
+  const out = { ...params, seed };
+  for (const key of PARAM_ORDER) {
+    if (key === 'waveform' || key === 'seed') continue;
+    const range = SPEC[key];
+    if (!range) continue;
+    const span = range.max - range.min;
+    const nudged = out[key] + (rnd() * 2 - 1) * span * amount;
+    out[key] = Math.max(range.min, Math.min(range.max, nudged));
+  }
+  return out;
+}
+
+/* One place that says what each dial means, used for the UI, the mutator and
+   the share link. */
+const SPEC = {
+  attack: { min: 0, max: 1, step: 0.005, label: 'Attack', unit: 's' },
+  sustain: { min: 0, max: 1.5, step: 0.005, label: 'Sustain', unit: 's' },
+  punch: { min: 0, max: 1, step: 0.01, label: 'Punch' },
+  decay: { min: 0, max: 2, step: 0.005, label: 'Decay', unit: 's' },
+  startFrequency: { min: 20, max: 4000, step: 1, label: 'Start frequency', unit: 'Hz' },
+  minFrequency: { min: 0, max: 1000, step: 1, label: 'Frequency floor', unit: 'Hz' },
+  slide: { min: -10, max: 10, step: 0.05, label: 'Slide', unit: 'oct/s' },
+  deltaSlide: { min: -10, max: 10, step: 0.05, label: 'Slide acceleration', unit: 'oct/s²' },
+  duty: { min: 0.05, max: 0.95, step: 0.01, label: 'Duty cycle' },
+  dutySweep: { min: -1, max: 1, step: 0.01, label: 'Duty sweep', unit: '/s' },
+  vibratoDepth: { min: 0, max: 0.5, step: 0.005, label: 'Vibrato depth' },
+  vibratoSpeed: { min: 0.5, max: 40, step: 0.1, label: 'Vibrato speed', unit: 'Hz' },
+  arpeggioMultiplier: { min: 0.25, max: 3, step: 0.01, label: 'Arpeggio jump', unit: '×' },
+  arpeggioTime: { min: 0, max: 0.5, step: 0.005, label: 'Arpeggio at', unit: 's' },
+  lowPass: { min: 0.01, max: 1, step: 0.005, label: 'Low-pass cutoff' },
+  lowPassSweep: { min: -1, max: 1, step: 0.01, label: 'Low-pass sweep', unit: '/s' },
+  resonance: { min: 0, max: 0.9, step: 0.01, label: 'Resonance' },
+  highPass: { min: 0, max: 0.9, step: 0.005, label: 'High-pass' },
+  repeatSpeed: { min: 0, max: 30, step: 0.1, label: 'Repeat', unit: 'Hz' },
+  volume: { min: 0, max: 1, step: 0.01, label: 'Volume' },
+};
+
+/* ---- Share links ------------------------------------------------------------
+   Fixed field order, three significant figures, so the string is short enough to
+   paste in a chat window and reproduces the sound exactly enough to be the same
+   sound. */
+function encodeParams(p) {
+  const waves = ['square', 'saw', 'triangle', 'sine', 'noise'];
+  const parts = [waves.indexOf(p.waveform), Math.round(p.seed)];
+  for (const key of PARAM_ORDER) {
+    if (key === 'waveform' || key === 'seed') continue;
+    /* Six figures, not four. Four rounds the sustain enough to change the
+       sample count, and an oscillator whose frequency is off in the fourth
+       figure has drifted a noticeable fraction of a cycle by the end of the
+       sound -- the samples stop matching even though the numbers look close. */
+    parts.push(Number(p[key].toPrecision(6)));
+  }
+  return parts.join('_');
+}
+
+function decodeParams(text) {
+  const waves = ['square', 'saw', 'triangle', 'sine', 'noise'];
+  const parts = String(text).split('_').map(Number);
+  if (parts.length < 3) return null;
+  const p = { ...DEFAULTS, waveform: waves[parts[0]] || 'square', seed: parts[1] || 1 };
+  let i = 2;
+  for (const key of PARAM_ORDER) {
+    if (key === 'waveform' || key === 'seed') continue;
+    if (i < parts.length && Number.isFinite(parts[i])) p[key] = parts[i];
+    i++;
+  }
+  return p;
+}
+
+/* ==== UI ==== */
+
+const $ = (id) => document.getElementById(id);
+const scope = $('scope');
+const sctx = scope.getContext('2d', { alpha: false });
+
+let params = generate('pickup', 12345);
+let samples = null;
+let audioCtx = null;
+let mutateSeed = 1;
+
+function sampleRate() { return Number($('rate-select').value); }
+function bitDepth() { return Number($('bits-select').value); }
+
+function renderCurrent() {
+  samples = renderSound(params, sampleRate());
+  drawScope();
+  refreshStats();
+}
+
+function drawScope() {
+  const W = scope.width;
+  const H = scope.height;
+  sctx.fillStyle = '#04070a';
+  sctx.fillRect(0, 0, W, H);
+  sctx.strokeStyle = 'rgba(57,255,143,0.16)';
+  sctx.lineWidth = 1;
+  sctx.beginPath(); sctx.moveTo(0, H / 2); sctx.lineTo(W, H / 2); sctx.stroke();
+
+  if (!samples || !samples.length) return;
+  /* One column per pixel showing the min and max in that slice -- plotting
+     every nth sample instead would alias a 4 kHz tone into a straight line. */
+  const per = samples.length / W;
+  sctx.strokeStyle = '#39ff8f';
+  sctx.lineWidth = 1;
+  sctx.beginPath();
+  for (let x = 0; x < W; x++) {
+    const from = Math.floor(x * per);
+    const to = Math.min(samples.length, Math.floor((x + 1) * per) + 1);
+    let lo = 1;
+    let hi = -1;
+    for (let i = from; i < to; i++) {
+      if (samples[i] < lo) lo = samples[i];
+      if (samples[i] > hi) hi = samples[i];
+    }
+    if (from >= to) { lo = hi = 0; }
+    sctx.moveTo(x + 0.5, H / 2 - hi * (H / 2 - 4));
+    sctx.lineTo(x + 0.5, H / 2 - lo * (H / 2 - 4));
+  }
+  sctx.stroke();
+
+  /* The envelope over the top, so the shape of the sound is legible. */
+  sctx.strokeStyle = 'rgba(255,145,48,0.7)';
+  sctx.setLineDash([3, 3]);
+  sctx.beginPath();
+  for (let x = 0; x < W; x++) {
+    const t = (x / W) * (samples.length / sampleRate());
+    const e = Math.min(1, envelopeAt(params, t) * params.volume);
+    const y = H / 2 - e * (H / 2 - 4);
+    if (x === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+  }
+  sctx.stroke();
+  sctx.setLineDash([]);
+}
+
+function refreshStats() {
+  const rate = sampleRate();
+  let peak = 0;
+  let clipped = 0;
+  for (const s of samples) {
+    const a = Math.abs(s);
+    if (a > peak) peak = a;
+    if (a >= 0.99999) clipped++;
+  }
+  $('stat-dur').textContent = `${(samples.length / rate).toFixed(3)} s`;
+  $('stat-samples').textContent = samples.length.toLocaleString('en-GB');
+  $('stat-peak').textContent = peak > 0 ? `${(20 * Math.log10(peak)).toFixed(1)} dBFS` : 'silent';
+  const bytes = 44 + samples.length * (bitDepth() === 8 ? 1 : 2);
+  $('stat-size').textContent = bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} kB`;
+  $('clip-note').textContent = clipped > samples.length * 0.01
+    ? `${((clipped / samples.length) * 100).toFixed(1)}% of samples are at full scale — turn the volume down if you want the shape back.`
+    : '';
+  $('seed-note').textContent = `Seed ${params.seed}. Share string: ${encodeParams(params)}`;
+}
+
+/* ---- playback ---- */
+
+function play() {
+  if (!audioCtx) {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new Ctor();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  /* Render at the AudioContext's own rate, not the export rate: resampling a
+     22 kHz buffer into a 48 kHz context would make the preview and the file
+     different sounds. */
+  const buffer = audioCtx.createBuffer(1, Math.max(1, Math.floor(totalDuration(params) * audioCtx.sampleRate)), audioCtx.sampleRate);
+  buffer.copyToChannel(renderSound(params, audioCtx.sampleRate), 0);
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
+
+/* ---- the rack ---- */
+
+function buildRack() {
+  const host = $('rack');
+  host.textContent = '';
+
+  const waveRow = document.createElement('div');
+  waveRow.className = 'tool-field-row';
+  const waveLabel = document.createElement('label');
+  waveLabel.className = 'tool-field-label';
+  waveLabel.textContent = 'Waveform';
+  waveLabel.htmlFor = 'waveform-select';
+  const waveSelect = document.createElement('select');
+  waveSelect.className = 'tool-select';
+  waveSelect.id = 'waveform-select';
+  for (const w of ['square', 'saw', 'triangle', 'sine', 'noise']) {
+    const opt = document.createElement('option');
+    opt.value = w;
+    opt.textContent = w;
+    waveSelect.appendChild(opt);
+  }
+  waveSelect.value = params.waveform;
+  waveSelect.addEventListener('change', () => { params.waveform = waveSelect.value; renderCurrent(); });
+  waveRow.appendChild(waveLabel);
+  waveRow.appendChild(waveSelect);
+  host.appendChild(waveRow);
+
+  for (const key of PARAM_ORDER) {
+    const spec = SPEC[key];
+    if (!spec) continue;
+    const row = document.createElement('div');
+    row.className = 'sf-dial';
+
+    const label = document.createElement('label');
+    label.className = 'tool-field-label';
+    label.htmlFor = `dial-${key}`;
+    label.textContent = spec.label;
+    row.appendChild(label);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.id = `dial-${key}`;
+    slider.min = String(spec.min);
+    slider.max = String(spec.max);
+    slider.step = String(spec.step);
+    slider.value = String(params[key]);
+    row.appendChild(slider);
+
+    const value = document.createElement('span');
+    value.className = 'sf-dial-value';
+    const show = () => { value.textContent = `${Number(params[key]).toFixed(spec.step < 0.01 ? 3 : 2)}${spec.unit ? ` ${spec.unit}` : ''}`; };
+    show();
+    row.appendChild(value);
+
+    slider.addEventListener('input', () => {
+      params[key] = Number(slider.value);
+      show();
+      renderCurrent();
+    });
+    host.appendChild(row);
+  }
+}
+
+function syncRack() {
+  const waveSelect = $('waveform-select');
+  if (waveSelect) waveSelect.value = params.waveform;
+  for (const key of PARAM_ORDER) {
+    const spec = SPEC[key];
+    const slider = $(`dial-${key}`);
+    if (!spec || !slider) continue;
+    slider.value = String(params[key]);
+    const value = slider.parentElement.querySelector('.sf-dial-value');
+    if (value) value.textContent = `${Number(params[key]).toFixed(spec.step < 0.01 ? 3 : 2)}${spec.unit ? ` ${spec.unit}` : ''}`;
+  }
+}
+
+/* ---- wiring ---- */
+
+document.querySelector('.sf-generators').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('[data-gen]');
+  if (!btn) return;
+  params = generate(btn.dataset.gen, Math.floor(Math.random() * 1000000));
+  syncRack();
+  renderCurrent();
+  play();
+});
+
+$('play-btn').addEventListener('click', play);
+$('mutate-btn').addEventListener('click', () => {
+  mutateSeed = (mutateSeed + 1) | 0;
+  params = mutate(params, Math.floor(Math.random() * 1000000));
+  syncRack();
+  renderCurrent();
+  play();
+});
+
+for (const id of ['rate-select', 'bits-select']) {
+  $(id).addEventListener('change', renderCurrent);
+}
+
+$('wav-btn').addEventListener('click', () => {
+  const wav = encodeWav(renderSound(params, sampleRate()), sampleRate(), bitDepth());
+  const link = $('download-link');
+  const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+  link.href = url;
+  link.download = `sfx-${params.waveform}-${params.seed}.wav`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+});
+
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+$('share-btn').addEventListener('click', async () => {
+  const url = `${location.origin}${location.pathname}#${encodeParams(params)}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Link copied');
+  } catch (err) { toast('Clipboard blocked'); }
+});
+
+window.addEventListener('hashchange', () => {
+  const decoded = decodeParams(location.hash.slice(1));
+  if (decoded) { params = decoded; syncRack(); renderCurrent(); }
+});
+
+window.__sfx = {
+  renderSound, encodeWav, declickGain, generate, mutate, envelopeAt, frequencyAt, waveSample,
+  encodeParams, decodeParams, totalDuration, DEFAULTS, SPEC,
+  set(p) { params = { ...DEFAULTS, ...p }; syncRack(); renderCurrent(); return params; },
+  get params() { return { ...params }; },
+  get samples() { return samples; },
+  get wav() { return encodeWav(renderSound(params, sampleRate()), sampleRate(), bitDepth()); },
+};
+
+/* ---- boot ---- */
+buildRack();
+const fromHash = decodeParams(location.hash.slice(1));
+if (fromHash) params = fromHash;
+syncRack();
+renderCurrent();
+</script>
+<!-- Slippy Deck: floating Slippy TV + jukebox player. Renders nothing unless admin.slippylabs.com/whoami confirms a signed-in account. -->
+<script defer src="https://slippylabs.com/deck/deck.js"></script>
+<!-- Slippy Labs sitewide privacy link. Self-contained on purpose: these sites
+     share no CSS, so it carries its own styles and inherits the page's text
+     colour instead of assuming a palette. position/z-index are load bearing --
+     the HUD theme's .starfield/.scanlines are fixed at z-index 0-1 and would
+     paint straight over an unpositioned footer.
+     The .page-wrap trim below is what keeps the bar on the first screen. -->
+<div class="sl-legal"><a href="https://slippylabs.com/privacy.html">Privacy</a></div>
+<style>
+.sl-legal{box-sizing:border-box;position:relative;z-index:3;height:64px;display:flex;align-items:center;justify-content:center;margin:0;padding:0 12px;font-family:"Consolas","SFMono-Regular",Menlo,Monaco,"Courier New",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+.sl-legal a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px}
+.sl-legal a:hover,.sl-legal a:focus-visible{text-decoration:underline;opacity:1}
+/* This page centres .page-wrap at min-height:100vh, which would push the bar a
+   whole screen below the fold. Give back exactly the bar height instead of
+   adding a scrollbar to a page that had none. */
+.page-wrap{min-height:calc(100vh - 64px)}
+</style>
+</body>
+</html>
